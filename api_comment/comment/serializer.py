@@ -3,14 +3,6 @@ from rest_framework import serializers
 from .models import Post, Comment
 
 
-class RecursiveSerializer(serializers.Serializer):
-
-    def to_representation(self, instance):
-        serializer = self.parent.parent.__class__(instance, context=self.context)
-
-        return serializer.data
-
-
 class FilterCommentListSerializer(serializers.ListSerializer):
 
     def to_representation(self, instance):
@@ -28,20 +20,27 @@ class CommentSerializer(serializers.ModelSerializer):
 
     children = serializers.SerializerMethodField()
 
-
+    class Meta:
+        list_serializer_class = FilterCommentListSerializer
+        model = Comment
+        fields = ('id', 'post', 'comment', 'level', 'children')
 
     def get_children(self, obj):
 
-        return RecursiveSerializer(obj) if obj.level <= 3 else None
-        # if obj.level <= 3:
-        #     return children
-        # else:
-        #     None
+        if obj.level < 2:
+            return CommentSerializer(obj.children.all(), many=True).data
+        else:
+            return None
+
+
+class AllCommentSerializer(serializers.ModelSerializer):
+
+    children = serializers.SerializerMethodField()
 
     class Meta:
         list_serializer_class = FilterCommentListSerializer
         model = Comment
-        fields = ('post', 'comment', 'level', 'children')
+        fields = ('id', 'post', 'comment', 'level', 'children')
 
-
-
+    def get_children(self, obj):
+            return AllCommentSerializer(obj.children.all(), many=True).data

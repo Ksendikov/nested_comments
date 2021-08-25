@@ -1,8 +1,6 @@
-from rest_framework import viewsets
-from rest_framework.views import APIView, Response
+from rest_framework import viewsets, mixins
 from .models import Comment, Post
-from .serializer import CommentSerializer, PostSerializer
-from mptt.utils import get_cached_trees
+from .serializer import CommentSerializer, PostSerializer, AllCommentSerializer
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -10,9 +8,20 @@ class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all()
 
 
-class CommentViewSet(viewsets.ModelViewSet):
-    serializer_class = CommentSerializer
-    queryset = get_cached_trees(Comment.objects.all())
+class CommentViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
+
+    queryset = Comment.objects.all()
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            if self.get_object().level < 3:
+                return CommentSerializer
+        return AllCommentSerializer
+
+
+
+
+
 
 
 
